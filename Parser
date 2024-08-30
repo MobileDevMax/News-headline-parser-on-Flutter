@@ -1,0 +1,89 @@
+import 'package:flutter/material.dart';
+import 'package:http/http.dart' as http;
+import 'package:html/parser.dart' as html_parser;
+
+void main() {
+  runApp(MyApp());
+}
+
+class MyApp extends StatelessWidget {
+  @override
+  Widget build(BuildContext context) {
+    return MaterialApp(
+      title: 'Parser',
+      theme: ThemeData(
+        primarySwatch: Colors.blue,
+      ),
+      home: ParserScreen(),
+    );
+  }
+}
+
+class ParserScreen extends StatefulWidget {
+  @override
+  _ParserScreenState createState() => _ParserScreenState();
+}
+
+class _ParserScreenState extends State<ParserScreen> {
+  List<String> _titles = [];
+  bool _loading = false;
+
+  Future<void> _fetchData() async {
+    setState(() {
+      _loading = true;
+      _titles.clear(); // clearing previous data
+    });
+
+    try {
+      final url = 'https://www.washingtonpost.com/'; // Replace with the URL you want to parse
+      final response = await http.get(Uri.parse(url));
+
+      if (response.statusCode == 200) {
+        final document = html_parser.parse(response.body);
+        final titleElements = document.querySelectorAll('h2'); // change selector as needed
+
+        for (var element in titleElements) {
+          _titles.add(element.text);
+        }
+      } else {
+        throw Exception('Error loading data');
+      }
+    } finally {
+      setState(() {
+        _loading = false;
+      });
+    }
+  }
+
+  @override
+  Widget build(BuildContext context) {
+    return Scaffold(
+      appBar: AppBar(
+        title: const Text('Parser'),
+      ),
+      body: Center(
+        child: _loading
+            ? CircularProgressIndicator()
+            : Column(
+                mainAxisAlignment: MainAxisAlignment.center,
+                children: [
+                  ElevatedButton(
+                    onPressed: _fetchData,
+                    child: const Text('Load headers'),
+                  ),
+                  Expanded(
+                    child: ListView.builder(
+                      itemCount: _titles.length,
+                      itemBuilder: (context, index) {
+                        return ListTile(
+                          title: Text(_titles[index]),
+                        );
+                      },
+                    ),
+                  ),
+                ],
+              ),
+      ),
+    );
+  }
+}
